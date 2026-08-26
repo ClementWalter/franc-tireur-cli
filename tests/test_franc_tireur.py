@@ -191,9 +191,9 @@ def test_build_article_html_escapes_the_title():
 
 
 def test_jwt_payload_decodes_an_unpadded_body():
-    # {"user":{"id":23968}} — base64url, padding stripped, as cookies store it.
-    token = "aGVhZGVy.eyJ1c2VyIjp7ImlkIjoyMzk2OH19.c2ln"
-    assert jwt_payload(token) == {"user": {"id": 23968}}
+    # base64url body, padding stripped, the way the cookie stores it.
+    token = "aGVhZGVy.eyJ1c2VyIjp7ImlkIjoxMjM0NX19.c2ln"
+    assert jwt_payload(token) == {"user": {"id": 12345}}
 
 
 def test_load_milibris_imports_the_first_existing_candidate(monkeypatch, tmp_path):
