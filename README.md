@@ -78,18 +78,26 @@ The printed paper (via the liseuse):
 ```bash
 ft toc                                      # TOC of the latest printed issue
 ft toc n249-2026 --rubric dossier
-ft page 1 -o cover.jpg                      # one page as JPEG
-ft page 1 --hd -o cover.jpg                 # full-resolution (tiles stitched)
-ft dump --hd                                # pages + PDF + per-article Markdown
+ft pdf                                      # readable PDF, typeset from the text
+ft pdf --facsimile                          # the page scans instead
+ft page 1 -o cover.jpg                      # one page as JPEG (HD)
+ft page 1 --ld -o thumb.jpg                 # quarter-resolution thumbnail
+ft dump                                     # pages + both PDFs + Markdown
 ```
+
+The liseuse caps page scans at about 1400×2050 px per printed sheet, which is
+not enough to read a broadsheet in print — so `ft pdf` typesets the article text
+into an A4 document instead. See
+[milibris-cli](https://github.com/ClementWalter/milibris-cli#resolution).
 
 `dump` writes to `./dump/franc-tireur/<date>/`:
 
 ```
-pages/page-NNN.jpg        LD renders, or HD tilesets stitched with --hd
-<title>-<date>.pdf        the pages assembled
-pNNN-<slug>.md            one Markdown file per article, frontmatter included
-resources/<mid>.jpg       article images, downloaded so the files outlive the ticket
+pages/page-NNN.jpg              HD stitched page renders (--ld for the small ones)
+<title>-<date>-facsimile.pdf    the page renders assembled
+<title>-<date>-texte.pdf        readable PDF typeset from the article text
+pNNN-<slug>.md                  one Markdown file per article, frontmatter included
+resources/<mid>.jpg             article images, saved so the files outlive the ticket
 ```
 
 ## Output conventions

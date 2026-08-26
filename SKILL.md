@@ -3,8 +3,8 @@ name: franc-tireur-cli
 description:
   "Read Franc-Tireur (French weekly) from the terminal with the bundled `ft`
   command. Use for site articles as Markdown/HTML/PDF with the paywall opened,
-  an issue's table of contents, site search, and the printed edition's pages
-  (JPEG/PDF) and per-article text via the liseuse. Authenticates by reading the
+  an issue's table of contents, site search, a readable PDF of a printed issue,
+  and the printed edition's pages and per-article text via the liseuse. Authenticates by reading the
   user's browser session — no login to run. Every read supports --json. For a
   kiosk other than Franc-Tireur's, use the milibris-cli skill instead."
 allowed-tools:
@@ -42,7 +42,8 @@ what the user asked for:
 | "read this article" / a URL or slug | website | `ft read <slug>` |
 | "what's in this week's issue?" | website TOC (has slugs) | `ft numero latest` |
 | "search Franc-Tireur for X" | website | `ft search "X"` |
-| "the paper" / pages / PDF / archive | liseuse (miLibris) | `ft dump`, `ft page` |
+| "a PDF of the paper I can read" | liseuse, typeset | `ft pdf` |
+| "the paper as printed" / pages / archive | liseuse (miLibris) | `ft dump`, `ft page` |
 | "TOC of the printed issue" | liseuse | `ft toc` |
 | full-text search *inside* the paper | liseuse | `milibris search "X"` (milibris-cli skill) |
 
@@ -73,7 +74,8 @@ then re-run. Start with `ft whoami` when anything looks off.
   chain commands or extract fields; never parse the human output.
 - **Markdown by default**, with YAML frontmatter (title, publication, issue,
   date, page, rubrics, authors, words, reading time).
-- **Stable paths.** `dump` writes to `./dump/<title>/<date>/` unless `-o`.
+- **Stable paths.** `dump` writes to `./dump/franc-tireur/<date>/` unless `-o`,
+  with a `-facsimile.pdf` (page scans) and a `-texte.pdf` (typeset, readable).
 - **No silent fallbacks.** An unknown issue slug is an error, not "the latest
   one". Failures exit non-zero with a one-line reason — surface it.
 
@@ -102,10 +104,13 @@ ft search "melenchon" -n 20 --json
 ```bash
 ft toc                                     # latest printed issue, article UUIDs
 ft toc n249-2026 --rubric dossier --json
-ft page 1 -o cover.jpg                     # LD render (~700px wide)
-ft page 1 --hd -o cover.jpg                # full resolution, tiles stitched
-ft dump                                    # pages + PDF + per-article Markdown
-ft dump n248-2026 --hd -o /tmp/ft248
+ft pdf                                     # readable PDF, typeset from the text
+ft pdf n249-2026 -o /tmp/ft249.pdf
+ft pdf --facsimile                         # the page scans instead
+ft page 1 -o cover.jpg                     # HD render, tiles stitched
+ft page 1 --ld -o thumb.jpg                # quarter-resolution thumbnail
+ft dump                                    # pages + both PDFs + Markdown
+ft dump n248-2026 -o /tmp/ft248
 ft dump --page 5 --no-articles             # just one page
 ```
 
@@ -124,9 +129,14 @@ ft numero latest --json \
   | xargs -I{} ft read {}
 ```
 
-**Archive the printed paper at full resolution:**
+**Give the user a PDF of the paper they can actually read:**
 ```bash
-ft dump --hd            # → ./dump/franc-tireur/<date>/ (JPEGs + PDF + Markdown)
+ft pdf                  # → ./franc-tireur-<date>-texte.pdf, typeset and searchable
+```
+
+**Archive the printed paper completely:**
+```bash
+ft dump                 # → ./dump/franc-tireur/<date>/ (HD pages, both PDFs, Markdown)
 ```
 
 **Map a website article to its page in the paper:**
@@ -146,5 +156,8 @@ ft toc --json | jq -r '.[] | "\(.page)\t\(.title)"'
   objects.
 - **Don't** reimplement kiosk work here — searching the printed archive or
   reading another publisher's liseuse is the **milibris-cli** skill's job.
-- **Don't** reach for `--hd` by default — it downloads one tile per grid cell per
-  page. Use it when the user wants print quality or readable text in the image.
+- **Don't** hand over the facsimile when the user wants to *read* the paper. The
+  liseuse caps page scans at ~1400×2050 px per printed sheet — around 11px of
+  body text on a broadsheet — and no higher-resolution source exists. `ft pdf`
+  typesets the text instead: sharp at any zoom, searchable, ~15× smaller.
+- **Don't** use `--ld` unless a thumbnail is genuinely what is wanted.
