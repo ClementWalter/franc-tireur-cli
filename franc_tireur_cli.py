@@ -11,7 +11,6 @@
 #     "pycryptodome>=3.20",
 #     "Pillow>=10.0",
 #     "img2pdf>=0.5",
-#     "weasyprint>=60",
 # ]
 # ///
 """Franc-Tireur CLI — read the weekly (site + liseuse) from the terminal.
@@ -41,8 +40,6 @@ import json as jsonlib
 import logging
 import os
 import re
-import shutil
-import subprocess
 import sys
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
@@ -85,6 +82,7 @@ TLS_IMPERSONATE = milibris_cli.TLS_IMPERSONATE
 UA = milibris_cli.UA
 browser_cookies = milibris_cli.browser_cookies
 slugify = milibris_cli.slugify
+html_to_pdf = milibris_cli.html_to_pdf
 
 logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stderr)
 log = logging.getLogger("ft")
@@ -339,51 +337,6 @@ def build_article_html(article: dict, css: str, viewport: bool) -> str:
     )
 
 
-def html_to_pdf(document: str, out: Path) -> None:
-    """Write a PDF with the first working engine.
-
-    WeasyPrint's Python lib is preferred; it needs native libs (`brew install
-    pango` on macOS). Failing that, any `wkhtmltopdf` or `weasyprint` binary on
-    PATH renders the same document.
-    """
-    out.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        import contextlib
-        import io
-
-        # A failed WeasyPrint import prints a multi-line native-libs block;
-        # silence it so the binary fallback stays quiet.
-        for noisy in ("weasyprint", "fontTools", "PIL"):
-            logging.getLogger(noisy).setLevel(logging.ERROR)
-        sink = io.StringIO()
-        with contextlib.redirect_stdout(sink), contextlib.redirect_stderr(sink):
-            from weasyprint import HTML
-        HTML(string=document, base_url=SITE).write_pdf(str(out))
-        return
-    except (ImportError, OSError):
-        pass
-
-    import tempfile
-
-    with tempfile.NamedTemporaryFile("w", suffix=".html", delete=False, encoding="utf-8") as fh:
-        fh.write(document)
-        tmp = fh.name
-    try:
-        for argv in (["wkhtmltopdf", "--quiet", "--encoding", "utf-8", tmp, str(out)],
-                     ["weasyprint", tmp, str(out)]):
-            if shutil.which(argv[0]) is None:
-                continue
-            run = subprocess.run(argv, capture_output=True, text=True, check=False)
-            if run.returncode == 0 and out.exists():
-                return
-        raise click.ClickException(
-            "No working HTML→PDF engine. Install WeasyPrint's native libs "
-            "(`brew install pango`), wkhtmltopdf, or the weasyprint CLI."
-        )
-    finally:
-        Path(tmp).unlink(missing_ok=True)
-
-
 # --------------------------------------------------------------------------- #
 # Kiosk delegation
 # --------------------------------------------------------------------------- #
@@ -419,7 +372,9 @@ def cli() -> None:
     \b
     Paper (digital.franc-tireur.fr, the miLibris liseuse):
       ft toc                           # TOC of the latest issue
-      ft dump --hd                     # page JPEGs + PDF + per-article Markdown
+      ft pdf                           # readable PDF, typeset from the text
+      ft pdf --facsimile               # the page scans instead
+      ft dump                          # pages + both PDFs + per-article Markdown
       ft page 1 -o cover.jpg
     """
 
@@ -522,7 +477,8 @@ def read(ref: str, out: str, as_html: bool, as_pdf: bool, as_json: bool) -> None
     stem = slugify(article["title"])
     if as_pdf:
         target = Path(out) if out else Path(f"{stem}.pdf")
-        html_to_pdf(build_article_html(article, _PDF_CSS, viewport=False), target)
+        html_to_pdf(build_article_html(article, _PDF_CSS, viewport=False), target,
+                    base_url=SITE)
     elif as_html:
         target = Path(out) if out else Path(f"{stem}.html")
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -569,15 +525,41 @@ def toc(issue: str, rubric: str, as_json: bool) -> None:
 @click.argument("issue", required=False)
 @click.option("-o", "--out", type=click.Path(), help="Output directory "
               "[default: ./dump/franc-tireur/<date>].")
-@click.option("--hd", is_flag=True, help="Stitch HD tilesets instead of LD renders.")
+@click.option("--hd/--ld", default=True, show_default="--hd", help="Page renders: "
+              "HD stitches the tilesets (the liseuse maximum); LD is a quarter of "
+              "the pixels and is not readable in print.")
 @click.option("--page", "only_page", type=int, help="Dump a single page.")
-@click.option("--no-pdf", is_flag=True, help="Skip the assembled PDF.")
-@click.option("--no-articles", is_flag=True, help="Skip the per-article Markdown.")
+@click.option("--no-pdf", is_flag=True, help="Skip both PDFs.")
+@click.option("--no-articles", is_flag=True, help="Skip the per-article Markdown "
+              "(and, with it, the readable PDF).")
 @click.pass_context
 def dump(ctx, issue, out, hd, only_page, no_pdf, no_articles) -> None:
-    """Archive a printed issue: page JPEGs, a PDF, and per-article Markdown."""
+    """Archive a printed issue: page JPEGs, two PDFs, per-article Markdown.
+
+    Writes a facsimile PDF (page scans, capped at the liseuse's resolution) and
+    a readable PDF typeset from the article text.
+    """
     ctx.invoke(milibris_cli.dump, issue=issue, out=out, hd=hd, only_page=only_page,
                no_pdf=no_pdf, no_articles=no_articles, host=KIOSK_HOST)
+
+
+@cli.command()
+@click.argument("issue", required=False)
+@click.option("-o", "--out", type=click.Path(), help="Output PDF path.")
+@click.option("--facsimile", is_flag=True, help="Assemble the page scans instead "
+              "of typesetting the text.")
+@click.option("--hd/--ld", default=True, show_default="--hd",
+              help="Facsimile only: which page renders to assemble.")
+@click.pass_context
+def pdf(ctx, issue, out, facsimile, hd) -> None:
+    """Build a readable PDF of a printed issue, typeset from the article text.
+
+    The liseuse serves at most ~1400x2050 pixels per printed sheet, so the page
+    scans are barely legible on a broadsheet. This typesets the text instead —
+    readable, searchable and small. Pass --facsimile for the scans.
+    """
+    ctx.invoke(milibris_cli.pdf, issue=issue, out=out, facsimile=facsimile, hd=hd,
+               host=KIOSK_HOST)
 
 
 @cli.command()
