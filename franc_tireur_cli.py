@@ -36,8 +36,10 @@ paper commands (`toc`, `dump`, `pages`) delegate to the second.
 from __future__ import annotations
 
 import html as htmllib
+import importlib.util
 import json as jsonlib
 import logging
+import os
 import re
 import shutil
 import subprocess
@@ -49,14 +51,39 @@ import click
 from bs4 import BeautifulSoup
 from curl_cffi import requests
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import milibris_cli  # noqa: E402
-from milibris_cli import (  # noqa: E402
-    TLS_IMPERSONATE,
-    UA,
-    browser_cookies,
-    slugify,
+# The liseuse half lives in its own repo (milibris-cli) because miLibris powers
+# many titles. Look for it where a local checkout plausibly sits, newest hint
+# first, so a `git pull` in either repo keeps both halves in step.
+MILIBRIS_CANDIDATES = (
+    Path(os.environ["MILIBRIS_CLI"]).expanduser() if os.environ.get("MILIBRIS_CLI") else None,
+    Path(__file__).resolve().parent.parent / "milibris-cli" / "milibris_cli.py",
+    Path.home() / ".claude" / "skills" / "milibris-cli" / "milibris_cli.py",
+    Path(__file__).resolve().parent / "milibris_cli.py",
 )
+
+
+def _load_milibris():
+    """Import the milibris-cli module from the first checkout that has it."""
+    for candidate in MILIBRIS_CANDIDATES:
+        if candidate and candidate.is_file():
+            spec = importlib.util.spec_from_file_location("milibris_cli", candidate)
+            module = importlib.util.module_from_spec(spec)
+            sys.modules["milibris_cli"] = module
+            spec.loader.exec_module(module)
+            return module
+    looked = "\n  ".join(str(c) for c in MILIBRIS_CANDIDATES if c)
+    raise SystemExit(
+        "franc-tireur-cli needs milibris-cli (the liseuse half) and could not "
+        "find it. Put a milibris-cli checkout next to this repo, or point "
+        f"$MILIBRIS_CLI at its milibris_cli.py. Looked in:\n  {looked}"
+    )
+
+
+milibris_cli = _load_milibris()
+TLS_IMPERSONATE = milibris_cli.TLS_IMPERSONATE
+UA = milibris_cli.UA
+browser_cookies = milibris_cli.browser_cookies
+slugify = milibris_cli.slugify
 
 logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stderr)
 log = logging.getLogger("ft")

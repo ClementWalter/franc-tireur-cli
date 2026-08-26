@@ -194,3 +194,22 @@ def test_jwt_payload_decodes_an_unpadded_body():
     # {"user":{"id":23968}} — base64url, padding stripped, as cookies store it.
     token = "aGVhZGVy.eyJ1c2VyIjp7ImlkIjoyMzk2OH19.c2ln"
     assert jwt_payload(token) == {"user": {"id": 23968}}
+
+
+def test_load_milibris_imports_the_first_existing_candidate(monkeypatch, tmp_path):
+    import franc_tireur_cli
+
+    stub = tmp_path / "milibris_cli.py"
+    stub.write_text("MARKER = 'from the stub'\n")
+    monkeypatch.setattr(franc_tireur_cli, "MILIBRIS_CANDIDATES",
+                        (tmp_path / "absent.py", stub))
+    assert franc_tireur_cli._load_milibris().MARKER == "from the stub"
+
+
+def test_load_milibris_exits_when_no_checkout_is_found(monkeypatch, tmp_path):
+    import franc_tireur_cli
+
+    monkeypatch.setattr(franc_tireur_cli, "MILIBRIS_CANDIDATES",
+                        (None, tmp_path / "absent.py"))
+    with pytest.raises(SystemExit, match="milibris-cli"):
+        franc_tireur_cli._load_milibris()

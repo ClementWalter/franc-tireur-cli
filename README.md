@@ -1,14 +1,9 @@
 # franc-tireur-cli
 
 Read **Franc-Tireur** — the weekly's website *and* its liseuse — from the
-terminal, as the logged-in subscriber. Ships two commands:
+terminal, as the logged-in subscriber. Ships one command, `ft`.
 
-| Command | Scope |
-|---|---|
-| `ft` | Franc-Tireur: site articles (paywall included) + the printed issue |
-| `milibris` | Any miLibris digital kiosk, host-agnostic |
-
-## Why two CLIs
+## Two back-ends
 
 Franc-Tireur serves the same journalism through two independent back-ends:
 
@@ -21,27 +16,30 @@ Franc-Tireur serves the same journalism through two independent back-ends:
   page images, a PDF and per-article JSON.
 
 The second half is not Franc-Tireur-specific. miLibris hosts the liseuse of many
-titles behind per-publisher hosts, all running the same kiosk app (an Express
-session cookie named `<name>WebKioskSessionKey`) and the same HTML5 reader
-(a short-lived ticket JWT unlocking `content.milibris.com`). So that layer lives
-in `milibris_cli.py` as a standalone, host-agnostic CLI, and `ft` builds on it.
+titles behind per-publisher hosts, all running the same kiosk app and the same
+HTML5 reader. That layer therefore lives in its **own repo**,
+[milibris-cli](../milibris-cli), and `ft` imports it.
 
 ## Install
 
-Both scripts are [PEP 723](https://peps.python.org/pep-0723/) `uv` scripts —
-dependencies resolve on first run, nothing to install. Put them on `$PATH`:
+`ft` is a [PEP 723](https://peps.python.org/pep-0723/) `uv` script — dependencies
+resolve on first run, nothing to install:
 
 ```bash
-ln -sfn "$PWD/bin/ft"       ~/.local/bin/ft
-ln -sfn "$PWD/bin/milibris" ~/.local/bin/milibris
+ln -sfn "$PWD/bin/ft" ~/.local/bin/ft
 ```
 
-The symlinks point at this checkout, so a `git pull` or an uncommitted edit
+The symlink points at this checkout, so a `git pull` or an uncommitted edit
 takes effect immediately.
+
+`ft` needs a **milibris-cli** checkout for its liseuse commands (`toc`, `page`,
+`dump`). It looks, in order, at `$MILIBRIS_CLI`, a `milibris-cli` directory
+beside this repo, `~/.claude/skills/milibris-cli/`, then this directory. The
+site commands work without it.
 
 ## Authentication
 
-There is nothing to paste. Both CLIs read the session straight out of a locally
+There is nothing to paste. `ft` reads the session straight out of a locally
 logged-in Chromium browser (Chrome, Arc, Brave, Edge) by decrypting its cookie
 store with the browser's macOS keychain key:
 
@@ -51,7 +49,7 @@ store with the browser's macOS keychain key:
 `cmiuser` is a ~24 h JWT. When it expires the paywall answers `401`; reload
 www.franc-tireur.fr in the browser to mint a new one, then re-run.
 
-## `ft`
+## Usage
 
 ```bash
 ft whoami                                   # which subscriber, is the liseuse live
@@ -75,24 +73,7 @@ ft page 1 --hd -o cover.jpg                 # full-resolution (tiles stitched)
 ft dump --hd                                # pages + PDF + per-article Markdown
 ```
 
-## `milibris`
-
-```bash
-milibris kiosks                             # kiosks your browsers are logged into
-milibris titles
-milibris issues -n 20
-milibris issue n249-2026 --json
-milibris toc --json
-milibris read <article-id> --issue n249-2026
-milibris dump --hd -o ./out
-milibris search "ukraine" --issue n250-2026 --json
-milibris set-host digital.example.fr        # default kiosk, if you use several
-```
-
-The kiosk is picked from `--host`, then `$MILIBRIS_HOST`, then
-`~/.config/milibris-cli/config.json`, then the only kiosk you are logged into.
-
-`dump` writes to `./dump/<title>/<date>/`:
+`dump` writes to `./dump/franc-tireur/<date>/`:
 
 ```
 pages/page-NNN.jpg        LD renders, or HD tilesets stitched with --hd
@@ -118,5 +99,6 @@ uv run --with pytest --with click --with curl_cffi --with beautifulsoup4 \
   -m pytest tests -q
 ```
 
-They cover the pure layers only — ref parsing, the manifest key derivation,
-catalogue/article scraping and Markdown rendering. No network.
+25 tests over the pure layers — site scraping, Markdown/HTML rendering and the
+milibris-cli locator. No network. The reader protocol itself is tested in
+[milibris-cli](../milibris-cli).

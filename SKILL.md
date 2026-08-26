@@ -2,11 +2,11 @@
 name: franc-tireur-cli
 description:
   "Read Franc-Tireur (French weekly) from the terminal with the bundled `ft`
-  command, and any miLibris digital kiosk with `milibris`. Use for site
-  articles as Markdown/HTML/PDF with the paywall opened, an issue's table of
-  contents, the printed edition's pages (JPEG/PDF) and per-article text, or
-  site/kiosk full-text search. Both authenticate by reading the user's browser
-  session — no login to run. Every read supports --json."
+  command. Use for site articles as Markdown/HTML/PDF with the paywall opened,
+  an issue's table of contents, site search, and the printed edition's pages
+  (JPEG/PDF) and per-article text via the liseuse. Authenticates by reading the
+  user's browser session — no login to run. Every read supports --json. For a
+  kiosk other than Franc-Tireur's, use the milibris-cli skill instead."
 allowed-tools:
   - Bash
   - Read
@@ -14,24 +14,23 @@ allowed-tools:
 
 # Franc-Tireur CLI
 
-Terminal access to Franc-Tireur as the logged-in subscriber, plus a
-host-agnostic CLI for any miLibris kiosk.
+Terminal access to Franc-Tireur as the logged-in subscriber.
 
 ## How to invoke
 
-Two commands, both PEP 723 `uv` scripts (deps resolve on first run):
-
-- **`ft`** — Franc-Tireur: the website *and* the liseuse.
-- **`milibris`** — any miLibris kiosk, `--host`-selectable.
-
-They are on `$PATH` via symlinks in `~/.local/bin` onto this repo's `bin/ft` and
-`bin/milibris`, so a `git pull` or an uncommitted edit takes effect at once. If
-they are missing from `$PATH`, run `<skill-dir>/bin/ft` directly or link them:
+Invoke it as **`ft`** — on `$PATH` via a symlink in `~/.local/bin` onto this
+repo's `bin/ft`, so a `git pull` or an uncommitted edit takes effect at once. It
+is a PEP 723 `uv` script; deps resolve on first run. If `ft` is missing from
+`$PATH`, run `<skill-dir>/bin/ft` directly or link it:
 
 ```bash
-ln -sfn <skill-dir>/bin/ft       ~/.local/bin/ft
-ln -sfn <skill-dir>/bin/milibris ~/.local/bin/milibris
+ln -sfn <skill-dir>/bin/ft ~/.local/bin/ft
 ```
+
+The liseuse commands (`toc`, `page`, `dump`) import the **milibris-cli** module,
+found via `$MILIBRIS_CLI`, a `milibris-cli` checkout beside this repo, or
+`~/.claude/skills/milibris-cli/`. The site commands need none of that. For any
+*other* publisher's kiosk, use the **milibris-cli** skill directly.
 
 ## Two back-ends — pick the right one
 
@@ -45,7 +44,7 @@ what the user asked for:
 | "search Franc-Tireur for X" | website | `ft search "X"` |
 | "the paper" / pages / PDF / archive | liseuse (miLibris) | `ft dump`, `ft page` |
 | "TOC of the printed issue" | liseuse | `ft toc` |
-| full-text search *inside* the paper | liseuse | `milibris search "X"` |
+| full-text search *inside* the paper | liseuse | `milibris search "X"` (milibris-cli skill) |
 
 The website is the right default for reading: its slugs are human-readable and
 match the URLs the user sees. The liseuse is the right one for the physical
@@ -58,7 +57,7 @@ are `nNNN-YYYY` slugs or a mid UUID.
 
 ## Authentication
 
-Nothing to paste and nothing to run: both CLIs decrypt the user's Chromium
+Nothing to paste and nothing to run: `ft` decrypts the user's Chromium
 cookie store (Chrome/Arc/Brave/Edge) with the macOS keychain key.
 
 - Site paywall needs `cmiuser` + `lauser_token` on `.franc-tireur.fr`.
@@ -78,7 +77,7 @@ then re-run. Start with `ft whoami` when anything looks off.
 - **No silent fallbacks.** An unknown issue slug is an error, not "the latest
   one". Failures exit non-zero with a one-line reason — surface it.
 
-## `ft` commands
+## Commands
 
 ### Website
 
@@ -110,24 +109,6 @@ ft dump n248-2026 --hd -o /tmp/ft248
 ft dump --page 5 --no-articles             # just one page
 ```
 
-## `milibris` commands
-
-Same shape, for any kiosk. `--host` selects it; with a single kiosk logged in it
-is inferred.
-
-```bash
-milibris kiosks                            # what the browsers are logged into
-milibris titles
-milibris issues -n 20 --json
-milibris issue n249-2026 --json
-milibris toc --json
-milibris read <article-uuid> --issue n249-2026
-milibris dump --hd -o ./out
-milibris search "ukraine" --issue n250-2026 --json
-milibris material                          # the raw decrypted manifest (always JSON)
-milibris set-host digital.example.fr
-```
-
 ## Common patterns for agents
 
 **Read every article of this week's issue:**
@@ -148,12 +129,6 @@ ft numero latest --json \
 ft dump --hd            # → ./dump/franc-tireur/<date>/ (JPEGs + PDF + Markdown)
 ```
 
-**Search the archive of printed issues and pull one article:**
-```bash
-milibris search "boualem sansal" --json | jq -r '.results[0] | .mid, .issue_mid'
-milibris read <mid> --issue <issue_mid>
-```
-
 **Map a website article to its page in the paper:**
 ```bash
 ft toc --json | jq -r '.[] | "\(.page)\t\(.title)"'
@@ -165,9 +140,11 @@ ft toc --json | jq -r '.[] | "\(.page)\t\(.title)"'
 - **Don't** retry on `401`: the user must reload franc-tireur.fr in the browser.
 - **Don't** parse the human output; use `--json`.
 - **Don't** call `www.franc-tireur.fr` or the kiosk with plain `curl` — both sit
-  behind CloudFront and reject non-browser TLS handshakes. The CLIs impersonate
+  behind CloudFront and reject non-browser TLS handshakes. `ft` impersonates
   Chrome.
 - **Don't** mix identifiers: website slugs and liseuse UUIDs name different
   objects.
+- **Don't** reimplement kiosk work here — searching the printed archive or
+  reading another publisher's liseuse is the **milibris-cli** skill's job.
 - **Don't** reach for `--hd` by default — it downloads one tile per grid cell per
   page. Use it when the user wants print quality or readable text in the image.
