@@ -74,8 +74,9 @@ def _load_milibris():
     looked = "\n  ".join(str(c) for c in MILIBRIS_CANDIDATES if c)
     raise SystemExit(
         "franc-tireur-cli needs milibris-cli (the liseuse half) and could not "
-        "find it. Put a milibris-cli checkout next to this repo, or point "
-        f"$MILIBRIS_CLI at its milibris_cli.py. Looked in:\n  {looked}"
+        "find it. Clone it next to this repo:\n"
+        "  git clone https://github.com/ClementWalter/milibris-cli.git\n"
+        f"or point $MILIBRIS_CLI at its milibris_cli.py. Looked in:\n  {looked}"
     )
 
 

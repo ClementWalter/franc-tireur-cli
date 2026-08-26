@@ -18,7 +18,7 @@ Franc-Tireur serves the same journalism through two independent back-ends:
 The second half is not Franc-Tireur-specific. miLibris hosts the liseuse of many
 titles behind per-publisher hosts, all running the same kiosk app and the same
 HTML5 reader. That layer therefore lives in its **own repo**,
-[milibris-cli](../milibris-cli), and `ft` imports it.
+[milibris-cli](https://github.com/ClementWalter/milibris-cli), and `ft` imports it.
 
 ## Install
 
@@ -26,16 +26,26 @@ HTML5 reader. That layer therefore lives in its **own repo**,
 resolve on first run, nothing to install:
 
 ```bash
-ln -sfn "$PWD/bin/ft" ~/.local/bin/ft
+git clone https://github.com/ClementWalter/franc-tireur-cli.git
+ln -sfn "$PWD/franc-tireur-cli/bin/ft" ~/.local/bin/ft
 ```
+
+Requires [uv](https://docs.astral.sh/uv/) and macOS (the cookie decryption uses
+the system keychain).
 
 The symlink points at this checkout, so a `git pull` or an uncommitted edit
 takes effect immediately.
 
-`ft` needs a **milibris-cli** checkout for its liseuse commands (`toc`, `page`,
-`dump`). It looks, in order, at `$MILIBRIS_CLI`, a `milibris-cli` directory
-beside this repo, `~/.claude/skills/milibris-cli/`, then this directory. The
-site commands work without it.
+The liseuse commands (`toc`, `page`, `dump`) additionally need a
+[milibris-cli](https://github.com/ClementWalter/milibris-cli) checkout — the
+site commands work without it:
+
+```bash
+git clone https://github.com/ClementWalter/milibris-cli.git ../milibris-cli
+```
+
+It looks, in order, at `$MILIBRIS_CLI`, a `milibris-cli` directory beside this
+repo, `~/.claude/skills/milibris-cli/`, then this directory.
 
 ## Authentication
 
@@ -101,4 +111,4 @@ uv run --with pytest --with click --with curl_cffi --with beautifulsoup4 \
 
 25 tests over the pure layers — site scraping, Markdown/HTML rendering and the
 milibris-cli locator. No network. The reader protocol itself is tested in
-[milibris-cli](../milibris-cli).
+[milibris-cli](https://github.com/ClementWalter/milibris-cli).

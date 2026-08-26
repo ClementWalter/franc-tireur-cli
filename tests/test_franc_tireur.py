@@ -191,7 +191,7 @@ def test_build_article_html_escapes_the_title():
 
 
 def test_jwt_payload_decodes_an_unpadded_body():
-    # {"user":{"id":12345}} — base64url, padding stripped, as cookies store it.
+    # base64url body, padding stripped, the way the cookie stores it.
     token = "aGVhZGVy.eyJ1c2VyIjp7ImlkIjoxMjM0NX19.c2ln"
     assert jwt_payload(token) == {"user": {"id": 12345}}
 
