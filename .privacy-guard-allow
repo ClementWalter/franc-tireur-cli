@@ -1,0 +1,2 @@
+# Synthetic JWT-shaped fixture in tests/test_franc_tireur.py (decodes to user id 12345).
+aGVhZGVy\.eyJ1c2VyIjp7ImlkIjoxMjM0NX19\.c2ln

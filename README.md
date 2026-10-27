@@ -1,5 +1,7 @@
 # franc-tireur-cli
 
+**Visibility: public.**
+
 Read **Franc-Tireur** — the weekly's website *and* its liseuse — from the
 terminal, as the logged-in subscriber. Ships one command, `ft`.
 
@@ -80,8 +82,7 @@ ft toc                                      # TOC of the latest printed issue
 ft toc n249-2026 --rubric dossier
 ft pdf                                      # readable PDF, typeset from the text
 ft pdf --facsimile                          # the page scans instead
-ft page 1 -o cover.jpg                      # one page as JPEG (HD)
-ft page 1 --ld -o thumb.jpg                 # quarter-resolution thumbnail
+ft page 1 --hd -o cover.jpg                 # one page as JPEG (HD)
 ft dump                                     # pages + both PDFs + Markdown
 ```
 
@@ -112,9 +113,7 @@ resources/<mid>.jpg             article images, saved so the files outlive the t
 ## Tests
 
 ```bash
-uv run --with pytest --with click --with curl_cffi --with beautifulsoup4 \
-  --with lxml --with markdownify --with markdown --with pycryptodome \
-  -m pytest tests -q
+uv run --script tests/test_franc_tireur.py
 ```
 
 25 tests over the pure layers — site scraping, Markdown/HTML rendering and the

@@ -18,43 +18,16 @@ Terminal access to Franc-Tireur as the logged-in subscriber.
 
 ## How to invoke
 
-Invoke it as **`ft`** — on `$PATH` via a symlink in `~/.local/bin` onto this
-repo's `bin/ft`, so a `git pull` or an uncommitted edit takes effect at once. It
-is a PEP 723 `uv` script; deps resolve on first run. If `ft` is missing from
-`$PATH`, run `<skill-dir>/bin/ft` directly or link it:
+Invoke it as **`ft`**, on `$PATH` via `uv run claudine/scripts/link_clis.py`
+(it links this repo's `bin/ft` into `~/.local/bin`, so a `git pull` or an
+uncommitted edit takes effect at once). If `ft` is missing from `$PATH`, run
+`<skill-dir>/bin/ft` directly. It is a PEP 723 `uv` script; deps resolve on
+first run.
 
-```bash
-ln -sfn <skill-dir>/bin/ft ~/.local/bin/ft
-```
-
-The liseuse commands (`toc`, `page`, `dump`) import the **milibris-cli** module,
-found via `$MILIBRIS_CLI`, a `milibris-cli` checkout beside this repo, or
+The liseuse commands (`toc`, `page`, `dump`, `pdf`) import the **milibris-cli**
+module, found via `$MILIBRIS_CLI`, a `milibris-cli` checkout beside this repo, or
 `~/.claude/skills/milibris-cli/`. The site commands need none of that. For any
 *other* publisher's kiosk, use the **milibris-cli** skill directly.
-
-## Two back-ends — pick the right one
-
-Franc-Tireur publishes the same journalism twice. Which one to read depends on
-what the user asked for:
-
-| The user wants | Back-end | Command |
-|---|---|---|
-| "read this article" / a URL or slug | website | `ft read <slug>` |
-| "what's in this week's issue?" | website TOC (has slugs) | `ft numero latest` |
-| "search Franc-Tireur for X" | website | `ft search "X"` |
-| "a PDF of the paper I can read" | liseuse, typeset | `ft pdf` |
-| "the paper as printed" / pages / archive | liseuse (miLibris) | `ft dump`, `ft page` |
-| "TOC of the printed issue" | liseuse | `ft toc` |
-| full-text search *inside* the paper | liseuse | `milibris search "X"` (milibris-cli skill) |
-
-The website is the right default for reading: its slugs are human-readable and
-match the URLs the user sees. The liseuse is the right one for the physical
-object — page images, a PDF, the print rubrics.
-
-**Identifiers differ between them and are not interchangeable.** Website
-articles are slugs (`le-pire-de-lfi-fait-sa-rentree`); liseuse articles are
-UUIDs from `ft toc`. Website issues are slugs (`lemprise-LFI`); liseuse issues
-are `nNNN-YYYY` slugs or a mid UUID.
 
 ## Authentication
 
@@ -107,14 +80,13 @@ ft toc n249-2026 --rubric dossier --json
 ft pdf                                     # readable PDF, typeset from the text
 ft pdf n249-2026 -o /tmp/ft249.pdf
 ft pdf --facsimile                         # the page scans instead
-ft page 1 -o cover.jpg                     # HD render, tiles stitched
-ft page 1 --ld -o thumb.jpg                # quarter-resolution thumbnail
+ft page 1 --hd -o cover.jpg                # HD render, tiles stitched
 ft dump                                    # pages + both PDFs + Markdown
 ft dump n248-2026 -o /tmp/ft248
 ft dump --page 5 --no-articles             # just one page
 ```
 
-## Common patterns for agents
+## Recipes
 
 **Read every article of this week's issue:**
 ```bash
@@ -144,7 +116,7 @@ ft dump                 # → ./dump/franc-tireur/<date>/ (HD pages, both PDFs, 
 ft toc --json | jq -r '.[] | "\(.page)\t\(.title)"'
 ```
 
-## Don'ts
+## Gotchas
 
 - **Don't** invent slugs — run `ft numeros` / `ft numero latest` first.
 - **Don't** retry on `401`: the user must reload franc-tireur.fr in the browser.
@@ -161,3 +133,28 @@ ft toc --json | jq -r '.[] | "\(.page)\t\(.title)"'
   body text on a broadsheet — and no higher-resolution source exists. `ft pdf`
   typesets the text instead: sharp at any zoom, searchable, ~15× smaller.
 - **Don't** use `--ld` unless a thumbnail is genuinely what is wanted.
+
+## Two back-ends — pick the right one
+
+Franc-Tireur publishes the same journalism twice. Which one to read depends on
+what the user asked for:
+
+| The user wants | Back-end | Command |
+|---|---|---|
+| "read this article" / a URL or slug | website | `ft read <slug>` |
+| "what's in this week's issue?" | website TOC (has slugs) | `ft numero latest` |
+| "search Franc-Tireur for X" | website | `ft search "X"` |
+| "a PDF of the paper I can read" | liseuse, typeset | `ft pdf` |
+| "the paper as printed" / pages / archive | liseuse (miLibris) | `ft dump`, `ft page` |
+| "TOC of the printed issue" | liseuse | `ft toc` |
+| full-text search *inside* the paper | liseuse | `milibris search "X"` (milibris-cli skill) |
+
+The website is the right default for reading: its slugs are human-readable and
+match the URLs the user sees. The liseuse is the right one for the physical
+object — page images, a PDF, the print rubrics.
+
+**Identifiers differ between them and are not interchangeable.** Website
+articles are slugs (`le-pire-de-lfi-fait-sa-rentree`); liseuse articles are
+UUIDs from `ft toc`. Website issues are slugs (`lemprise-LFI`); liseuse issues
+are `nNNN-YYYY` slugs or a mid UUID.
+

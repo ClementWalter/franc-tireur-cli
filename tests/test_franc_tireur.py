@@ -1,8 +1,19 @@
 #!/usr/bin/env -S uv run --script
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["pytest>=8.0", "click>=8.1", "curl_cffi>=0.7", "beautifulsoup4>=4.12",
-#                 "lxml>=5.0", "markdownify>=0.13", "markdown>=3.5", "pycryptodome>=3.20"]
+# dependencies = [
+#     "pytest==9.1.1",
+#     "click==8.5.0",
+#     "curl_cffi==0.17.0",
+#     "beautifulsoup4==4.15.0",
+#     "lxml==6.1.3",
+#     "markdownify==1.2.3",
+#     "markdown==3.11.2",
+#     "pycryptodome==4.2.0",
+# ]
+#
+# [tool.uv]
+# exclude-newer = "2026-10-27T00:00:00Z"
 # ///
 """Unit tests for franc_tireur_cli's scraping and rendering layers. No network."""
 
@@ -192,7 +203,7 @@ def test_build_article_html_escapes_the_title():
 
 def test_jwt_payload_decodes_an_unpadded_body():
     # base64url body, padding stripped, the way the cookie stores it.
-    token = "aGVhZGVy.eyJ1c2VyIjp7ImlkIjoxMjM0NX19.c2ln"
+    token = "aGVhZGVy.eyJ1c2VyIjp7ImlkIjoxMjM0NX19.c2ln"  # privacy-guard: allow gitleaks:allow
     assert jwt_payload(token) == {"user": {"id": 12345}}
 
 
@@ -213,3 +224,7 @@ def test_load_milibris_exits_when_no_checkout_is_found(monkeypatch, tmp_path):
                         (None, tmp_path / "absent.py"))
     with pytest.raises(SystemExit, match="milibris-cli"):
         franc_tireur_cli._load_milibris()
+
+
+if __name__ == "__main__":
+    sys.exit(pytest.main([__file__, "-q"]))

@@ -2,16 +2,19 @@
 # /// script
 # requires-python = ">=3.11"
 # dependencies = [
-#     "click>=8.1",
-#     "curl_cffi>=0.7",
-#     "beautifulsoup4>=4.12",
-#     "lxml>=5.0",
-#     "markdownify>=0.13",
-#     "markdown>=3.5",
-#     "pycryptodome>=3.20",
-#     "Pillow>=10.0",
-#     "img2pdf>=0.5",
+#     "click==8.5.0",
+#     "curl_cffi==0.17.0",
+#     "beautifulsoup4==4.15.0",
+#     "lxml==6.1.3",
+#     "markdownify==1.2.3",
+#     "markdown==3.11.2",
+#     "pycryptodome==4.2.0",
+#     "Pillow==13.0.0",
+#     "img2pdf==0.6.3",
 # ]
+#
+# [tool.uv]
+# exclude-newer = "2026-10-27T00:00:00Z"
 # ///
 """Franc-Tireur CLI — read the weekly (site + liseuse) from the terminal.
 
@@ -357,29 +360,13 @@ def emit(data, as_json: bool, render) -> None:
         render(data)
 
 
-@click.group(context_settings={"help_option_names": ["-h", "--help"]})
+@click.group(context_settings={"help_option_names": ["-h", "--help"]}, epilog="\b\nExamples:\n  ft whoami\n  ft numero latest\n  ft read le-pire-de-lfi-fait-sa-rentree\n  ft toc\n  ft pdf")
 @click.version_option("1.0.0", prog_name="ft")
 def cli() -> None:
-    """Read Franc-Tireur — the site and the liseuse — from the terminal.
-
-    \b
-    Site (www.franc-tireur.fr), paywall included:
-      ft numeros -n 10                 # recent issues
-      ft numero latest                 # this week's TOC
-      ft read le-pire-de-lfi-fait-sa-rentree
-      ft read <slug> --html -o /tmp/a.html
-      ft search "melenchon" --json
-    \b
-    Paper (digital.franc-tireur.fr, the miLibris liseuse):
-      ft toc                           # TOC of the latest issue
-      ft pdf                           # readable PDF, typeset from the text
-      ft pdf --facsimile               # the page scans instead
-      ft dump                          # pages + both PDFs + per-article Markdown
-      ft page 1 -o cover.jpg
-    """
+    """Read Franc-Tireur — the site and the liseuse — from the terminal."""
 
 
-@cli.command()
+@cli.command(epilog="\b\nExamples:\n  ft whoami\n  ft whoami --json")
 @json_option
 def whoami(as_json: bool) -> None:
     """Show which subscriber account the browser session belongs to."""
@@ -402,7 +389,7 @@ def whoami(as_json: bool) -> None:
         click.echo(f"liseuse: {'authenticated' if d['kiosk_authenticated'] else 'logged out'}")])
 
 
-@cli.command()
+@cli.command(epilog="\b\nExamples:\n  ft numeros -n 10\n  ft numeros --json")
 @click.option("-n", "--limit", default=20, show_default=True, help="How many issues.")
 @json_option
 def numeros(limit: int, as_json: bool) -> None:
@@ -423,7 +410,7 @@ def numeros(limit: int, as_json: bool) -> None:
         for r in data])
 
 
-@cli.command()
+@cli.command(epilog="\b\nExamples:\n  ft numero latest\n  ft numero lemprise-LFI --json")
 @click.argument("issue", default="latest")
 @json_option
 def numero(issue: str, as_json: bool) -> None:
@@ -453,7 +440,7 @@ def numero(issue: str, as_json: bool) -> None:
           for a in d["articles"]]])
 
 
-@cli.command()
+@cli.command(epilog="\b\nExamples:\n  ft read le-pire-de-lfi-fait-sa-rentree\n  ft read le-pire-de-lfi-fait-sa-rentree --html -o phone.html\n  ft read le-pire-de-lfi-fait-sa-rentree --pdf\n  ft read le-pire-de-lfi-fait-sa-rentree --json")
 @click.argument("ref")
 @click.option("-o", "--out", type=click.Path(), help="Write here; a .html/.pdf "
               "suffix implies --html/--pdf.")
@@ -494,7 +481,7 @@ def read(ref: str, out: str, as_html: bool, as_pdf: bool, as_json: bool) -> None
     click.echo(str(target))
 
 
-@cli.command()
+@cli.command(epilog="\b\nExamples:\n  ft search \"melenchon\" -n 20\n  ft search \"melenchon\" --json")
 @click.argument("query")
 @click.option("-n", "--limit", default=20, show_default=True, help="How many results.")
 @json_option
@@ -507,7 +494,7 @@ def search(query: str, limit: int, as_json: bool) -> None:
         for r in data])
 
 
-@cli.command()
+@cli.command(epilog="\b\nExamples:\n  ft toc\n  ft toc n249-2026 --rubric dossier --json")
 @click.argument("issue", required=False)
 @click.option("--rubric", help="Keep only articles in this rubric.")
 @json_option
@@ -521,7 +508,7 @@ def toc(issue: str, rubric: str, as_json: bool) -> None:
         for r in data])
 
 
-@cli.command()
+@cli.command(epilog="\b\nExamples:\n  ft dump\n  ft dump n248-2026 -o /tmp/ft248\n  ft dump --page 5 --no-articles")
 @click.argument("issue", required=False)
 @click.option("-o", "--out", type=click.Path(), help="Output directory "
               "[default: ./dump/franc-tireur/<date>].")
@@ -543,7 +530,7 @@ def dump(ctx, issue, out, hd, only_page, no_pdf, no_articles) -> None:
                no_pdf=no_pdf, no_articles=no_articles, host=KIOSK_HOST)
 
 
-@cli.command()
+@cli.command(epilog="\b\nExamples:\n  ft pdf\n  ft pdf n249-2026 -o /tmp/ft249.pdf\n  ft pdf --facsimile")
 @click.argument("issue", required=False)
 @click.option("-o", "--out", type=click.Path(), help="Output PDF path.")
 @click.option("--facsimile", is_flag=True, help="Assemble the page scans instead "
@@ -562,7 +549,7 @@ def pdf(ctx, issue, out, facsimile, hd) -> None:
                host=KIOSK_HOST)
 
 
-@cli.command()
+@cli.command(epilog="\b\nExamples:\n  ft page 1 -o cover.jpg\n  ft page 1 --hd -o cover.jpg")
 @click.argument("number", type=int)
 @click.argument("issue", required=False)
 @click.option("-o", "--out", type=click.Path(), help="Output JPEG path.")
@@ -578,13 +565,6 @@ def page(number: int, issue: str, out: str, hd: bool) -> None:
     path.write_bytes(target.page_image(spec, hd=hd))
     click.echo(str(path))
 
-
-# Provider commands share the app and MCP execution policy.
-from pathlib import Path as _PolicyPath
-import sys as _policy_sys
-_policy_sys.path.insert(0, str(_PolicyPath(__file__).resolve().parent))
-from onebrain_policy import install as _install_onebrain_policy
-_install_onebrain_policy(cli, 'franc-tireur')
 
 if __name__ == "__main__":
     cli()
