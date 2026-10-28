@@ -18,6 +18,7 @@
 """Tests for the terminal-free path: the missing-session error and where files
 land without -o. No network."""
 
+import json
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -93,6 +94,18 @@ def test_signed_out_hint_names_only_the_signed_out_half():
 def test_signed_out_hint_names_both_halves():
     hint = ft.signed_out_hint({"site_signed_in": False, "kiosk_authenticated": False})
     assert "https://www.franc-tireur.fr and https://digital.franc-tireur.fr" in hint
+
+
+def test_read_pdf_with_json_still_writes_the_pdf(stub_site, monkeypatch):
+    monkeypatch.setattr(ft, "html_to_pdf", lambda document, target, base_url=None: target.write_text("%PDF-"))
+    CliRunner().invoke(ft.cli, ["read", "le-pire-de-lfi", "--pdf", "--json"])
+    assert (stub_site / "le-pire-de-lfi.pdf").exists()
+
+
+def test_read_pdf_with_json_reports_the_path(stub_site, monkeypatch):
+    monkeypatch.setattr(ft, "html_to_pdf", lambda document, target, base_url=None: target.write_text("%PDF-"))
+    result = CliRunner().invoke(ft.cli, ["read", "le-pire-de-lfi", "--pdf", "--json"])
+    assert json.loads(result.output)["path"] == str(stub_site / "le-pire-de-lfi.pdf")
 
 
 if __name__ == "__main__":

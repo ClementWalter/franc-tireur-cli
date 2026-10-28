@@ -473,7 +473,9 @@ def read(ref: str, out: str, as_html: bool, as_pdf: bool, as_json: bool) -> None
     if out:
         as_html = as_html or out.endswith(".html")
         as_pdf = as_pdf or out.endswith(".pdf")
-    if as_json:
+    # A file request wins over --json, which then reports the file: MCP
+    # clients pass --json on every call.
+    if as_json and not (out or as_html or as_pdf):
         click.echo(jsonlib.dumps(article, ensure_ascii=False, indent=2))
         return
 
@@ -494,7 +496,9 @@ def read(ref: str, out: str, as_html: bool, as_pdf: bool, as_json: bool) -> None
         target = Path(out)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(text)
-    click.echo(str(target.resolve()))
+    path = str(target.resolve())
+    click.echo(jsonlib.dumps({"path": path, "title": article["title"]}, ensure_ascii=False)
+               if as_json else path)
 
 
 @cli.command(epilog="\b\nExamples:\n  ft search \"melenchon\" -n 20\n  ft search \"melenchon\" --json")
