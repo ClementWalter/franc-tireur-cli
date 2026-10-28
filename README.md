@@ -91,7 +91,7 @@ not enough to read a broadsheet in print — so `ft pdf` typesets the article te
 into an A4 document instead. See
 [milibris-cli](https://github.com/ClementWalter/milibris-cli#resolution).
 
-`dump` writes to `./dump/franc-tireur/<date>/`:
+`dump` writes to `~/Downloads/franc-tireur/<date>/`:
 
 ```
 pages/page-NNN.jpg              HD stitched page renders (--ld for the small ones)
@@ -109,6 +109,15 @@ resources/<mid>.jpg             article images, saved so the files outlive the t
   rubrics, authors, words, reading time).
 * Failures exit non-zero with a one-line reason. Nothing falls back silently: an
   unknown issue slug is an error, not the latest issue.
+
+## Claude Desktop extension
+
+`mcpb.json` customizes the extension `mcp-bridge pack franc-tireur-cli` builds,
+so someone without a terminal can install it by double-click. Its `include` key
+ships milibris-cli's `milibris_cli.py` beside `franc_tireur_cli.py`, where `ft`
+looks for it. Setup for the user: sign in to franc-tireur.fr (and
+digital.franc-tireur.fr for the liseuse) in Chrome, then click Always Allow on
+the keychain prompt. Files land in `~/Downloads/franc-tireur/`.
 
 ## Tests
 

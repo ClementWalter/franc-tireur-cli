@@ -87,6 +87,12 @@ browser_cookies = milibris_cli.browser_cookies
 slugify = milibris_cli.slugify
 html_to_pdf = milibris_cli.html_to_pdf
 
+# Files land in ~/Downloads/franc-tireur whatever the cwd. The liseuse half
+# names its folders after the title, so pointing it at ~/Downloads puts the
+# dumps and issue PDFs in that same folder.
+DOWNLOADS = Path.home() / "Downloads" / "franc-tireur"
+milibris_cli.DOWNLOADS = DOWNLOADS.parent
+
 logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stderr)
 log = logging.getLogger("ft")
 
@@ -117,8 +123,7 @@ def require_cookies() -> dict:
     if missing:
         raise click.ClickException(
             f"Missing franc-tireur.fr cookie(s): {', '.join(missing)}. Open "
-            "https://www.franc-tireur.fr in Chrome/Arc/Brave/Edge, sign in, "
-            "then re-run — the CLI reads the session from the browser."
+            "or reload https://www.franc-tireur.fr. " + milibris_cli.LOGIN_HINT
         )
     return jar
 
@@ -156,8 +161,8 @@ def decrypt_body(blob: str, jar: dict) -> str:
     if resp.status_code == 401:
         raise click.ClickException(
             f"Paywall refused the stored session ({resp.text.strip()}). Reload "
-            "https://www.franc-tireur.fr in your browser to refresh the cmiuser "
-            "token — it expires daily — then re-run."
+            "https://www.franc-tireur.fr in Chrome (or Arc/Brave/Edge) to refresh "
+            "the cmiuser token — it expires daily — then try again."
         )
     if resp.status_code >= 400:
         raise click.ClickException(f"decrypt → HTTP {resp.status_code}")
@@ -443,7 +448,8 @@ def numero(issue: str, as_json: bool) -> None:
 @cli.command(epilog="\b\nExamples:\n  ft read le-pire-de-lfi-fait-sa-rentree\n  ft read le-pire-de-lfi-fait-sa-rentree --html -o phone.html\n  ft read le-pire-de-lfi-fait-sa-rentree --pdf\n  ft read le-pire-de-lfi-fait-sa-rentree --json")
 @click.argument("ref")
 @click.option("-o", "--out", type=click.Path(), help="Write here; a .html/.pdf "
-              "suffix implies --html/--pdf.")
+              "suffix implies --html/--pdf [default for --html/--pdf: "
+              "~/Downloads/franc-tireur/<title>.<ext>].")
 @click.option("--html", "as_html", is_flag=True, help="Responsive standalone HTML.")
 @click.option("--pdf", "as_pdf", is_flag=True, help="Reader-style A4 PDF.")
 @json_option
@@ -463,11 +469,11 @@ def read(ref: str, out: str, as_html: bool, as_pdf: bool, as_json: bool) -> None
 
     stem = slugify(article["title"])
     if as_pdf:
-        target = Path(out) if out else Path(f"{stem}.pdf")
+        target = Path(out) if out else DOWNLOADS / f"{stem}.pdf"
         html_to_pdf(build_article_html(article, _PDF_CSS, viewport=False), target,
                     base_url=SITE)
     elif as_html:
-        target = Path(out) if out else Path(f"{stem}.html")
+        target = Path(out) if out else DOWNLOADS / f"{stem}.html"
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(build_article_html(article, _HTML_CSS, viewport=True))
     else:
@@ -478,7 +484,7 @@ def read(ref: str, out: str, as_html: bool, as_pdf: bool, as_json: bool) -> None
         target = Path(out)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(text)
-    click.echo(str(target))
+    click.echo(str(target.resolve()))
 
 
 @cli.command(epilog="\b\nExamples:\n  ft search \"melenchon\" -n 20\n  ft search \"melenchon\" --json")
@@ -511,7 +517,7 @@ def toc(issue: str, rubric: str, as_json: bool) -> None:
 @cli.command(epilog="\b\nExamples:\n  ft dump\n  ft dump n248-2026 -o /tmp/ft248\n  ft dump --page 5 --no-articles")
 @click.argument("issue", required=False)
 @click.option("-o", "--out", type=click.Path(), help="Output directory "
-              "[default: ./dump/franc-tireur/<date>].")
+              "[default: ~/Downloads/franc-tireur/<date>].")
 @click.option("--hd/--ld", default=True, show_default="--hd", help="Page renders: "
               "HD stitches the tilesets (the liseuse maximum); LD is a quarter of "
               "the pixels and is not readable in print.")
@@ -532,7 +538,8 @@ def dump(ctx, issue, out, hd, only_page, no_pdf, no_articles) -> None:
 
 @cli.command(epilog="\b\nExamples:\n  ft pdf\n  ft pdf n249-2026 -o /tmp/ft249.pdf\n  ft pdf --facsimile")
 @click.argument("issue", required=False)
-@click.option("-o", "--out", type=click.Path(), help="Output PDF path.")
+@click.option("-o", "--out", type=click.Path(), help="Output PDF path "
+              "[default: ~/Downloads/franc-tireur/franc-tireur-<date>-texte.pdf].")
 @click.option("--facsimile", is_flag=True, help="Assemble the page scans instead "
               "of typesetting the text.")
 @click.option("--hd/--ld", default=True, show_default="--hd",
@@ -552,7 +559,8 @@ def pdf(ctx, issue, out, facsimile, hd) -> None:
 @cli.command(epilog="\b\nExamples:\n  ft page 1 -o cover.jpg\n  ft page 1 --hd -o cover.jpg")
 @click.argument("number", type=int)
 @click.argument("issue", required=False)
-@click.option("-o", "--out", type=click.Path(), help="Output JPEG path.")
+@click.option("-o", "--out", type=click.Path(), help="Output JPEG path "
+              "[default: ~/Downloads/franc-tireur/page-NNN.jpg].")
 @click.option("--hd", is_flag=True, help="Stitch the HD tileset.")
 def page(number: int, issue: str, out: str, hd: bool) -> None:
     """Save one printed page as a JPEG."""
@@ -560,10 +568,10 @@ def page(number: int, issue: str, out: str, hd: bool) -> None:
     spec = next((p for p in target.material["pages"] if p["number"] == number), None)
     if not spec:
         raise click.ClickException(f"Issue has no page {number}")
-    path = Path(out) if out else Path(f"page-{number:03d}.jpg")
+    path = Path(out) if out else DOWNLOADS / f"page-{number:03d}.jpg"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(target.page_image(spec, hd=hd))
-    click.echo(str(path))
+    click.echo(str(path.resolve()))
 
 
 if __name__ == "__main__":

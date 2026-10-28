@@ -1,0 +1,9 @@
+{
+  "display_name": "Franc-Tireur",
+  "description": "Read Franc-Tireur, the weekly, from Claude: site articles, issue contents, search and readable PDFs.",
+  "long_description": "Reads Franc-Tireur with your subscriber account: articles from franc-tireur.fr (paywalled ones included), the contents of each issue, site search, and the printed edition from the digital kiosk (liseuse) as a readable PDF.\n\nSetup:\n1. In Google Chrome (or Arc, Brave, Edge), sign in to https://www.franc-tireur.fr with your subscriber account. For the printed edition, also open https://digital.franc-tireur.fr and sign in there.\n2. In Claude, ask: \"who am I on Franc-Tireur?\". The first time, macOS asks whether `security` may use the \"Chrome Safe Storage\" keychain item: type your Mac password and click Always Allow. This is how the extension reuses your browser session; nothing is sent anywhere else.\n\nThe site session lasts about a day: if Claude says the paywall refused the session, reload franc-tireur.fr in Chrome and ask again. PDFs, pages and issue archives are saved in Downloads/franc-tireur.",
+  "platforms": ["darwin"],
+  "include": {
+    "milibris_cli.py": "../milibris-cli/milibris_cli.py"
+  }
+}

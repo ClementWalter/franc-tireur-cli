@@ -47,7 +47,7 @@ then re-run. Start with `ft whoami` when anything looks off.
   chain commands or extract fields; never parse the human output.
 - **Markdown by default**, with YAML frontmatter (title, publication, issue,
   date, page, rubrics, authors, words, reading time).
-- **Stable paths.** `dump` writes to `./dump/franc-tireur/<date>/` unless `-o`,
+- **Stable paths.** `dump` writes to `~/Downloads/franc-tireur/<date>/` unless `-o`,
   with a `-facsimile.pdf` (page scans) and a `-texte.pdf` (typeset, readable).
 - **No silent fallbacks.** An unknown issue slug is an error, not "the latest
   one". Failures exit non-zero with a one-line reason — surface it.
@@ -64,7 +64,7 @@ ft numero lemprise-LFI --json              # {number, date, title, summary, arti
 ft read le-pire-de-lfi-fait-sa-rentree     # Markdown to stdout, paywall opened
 ft read <slug> -o out/article.md           # parents auto-created
 ft read <slug> --html -o phone.html        # responsive standalone page
-ft read <slug> --pdf                       # reader-style A4 → ./<slug>.pdf
+ft read <slug> --pdf                       # reader-style A4 → ~/Downloads/franc-tireur/<title>.pdf
 ft read <slug> --json                      # parsed fields incl. body_html
 ft search "melenchon" -n 20 --json
 ```
@@ -103,12 +103,12 @@ ft numero latest --json \
 
 **Give the user a PDF of the paper they can actually read:**
 ```bash
-ft pdf                  # → ./franc-tireur-<date>-texte.pdf, typeset and searchable
+ft pdf                  # → ~/Downloads/franc-tireur/franc-tireur-<date>-texte.pdf, typeset and searchable
 ```
 
 **Archive the printed paper completely:**
 ```bash
-ft dump                 # → ./dump/franc-tireur/<date>/ (HD pages, both PDFs, Markdown)
+ft dump                 # → ~/Downloads/franc-tireur/<date>/ (HD pages, both PDFs, Markdown)
 ```
 
 **Map a website article to its page in the paper:**
