@@ -128,3 +128,9 @@ uv run --script tests/test_franc_tireur.py
 25 tests over the pure layers — site scraping, Markdown/HTML rendering and the
 milibris-cli locator. No network. The reader protocol itself is tested in
 [milibris-cli](https://github.com/ClementWalter/milibris-cli).
+
+## Privacy Policy
+
+The Claude Desktop extension built from this repository keeps your data on your
+Mac and talks only to the service it connects to. Full policy:
+<https://clementwalter.github.io/claude-extensions/privacy/>
