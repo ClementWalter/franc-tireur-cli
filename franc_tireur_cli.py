@@ -117,6 +117,13 @@ def site_cookies() -> dict:
     return jar
 
 
+def signed_out_hint(status: dict) -> str:
+    """What to sign in to, for the halves `whoami` found signed out."""
+    sites = [url for ok, url in ((status["site_signed_in"], "https://www.franc-tireur.fr"),
+                                 (status["kiosk_authenticated"], f"https://{KIOSK_HOST}")) if not ok]
+    return f"Open {' and '.join(sites)}. " + milibris_cli.LOGIN_HINT
+
+
 def require_cookies() -> dict:
     jar = site_cookies()
     missing = [n for n in AUTH_COOKIES if n not in jar]
@@ -387,6 +394,9 @@ def whoami(as_json: bool) -> None:
         status["kiosk_authenticated"] = kiosk().authenticated()
     except click.ClickException:
         status["kiosk_authenticated"] = False
+    status["site_signed_in"] = all(name in jar for name in AUTH_COOKIES)
+    if not (status["site_signed_in"] and status["kiosk_authenticated"]):
+        status["next_step"] = signed_out_hint(status)
     emit(status, as_json, lambda d: [
         click.echo(f"user {d.get('user_id')} ({d.get('user_type') or 'unknown'}), "
                    f"subscription {d.get('subscription')}"),

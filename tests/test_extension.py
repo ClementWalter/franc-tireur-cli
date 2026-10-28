@@ -85,5 +85,15 @@ def test_read_markdown_still_prints_to_stdout(stub_site):
     assert "Texte libre." in result.output
 
 
+def test_signed_out_hint_names_only_the_signed_out_half():
+    hint = ft.signed_out_hint({"site_signed_in": True, "kiosk_authenticated": False})
+    assert hint.startswith("Open https://digital.franc-tireur.fr. ")
+
+
+def test_signed_out_hint_names_both_halves():
+    hint = ft.signed_out_hint({"site_signed_in": False, "kiosk_authenticated": False})
+    assert "https://www.franc-tireur.fr and https://digital.franc-tireur.fr" in hint
+
+
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-q"]))
